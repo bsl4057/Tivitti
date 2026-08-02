@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<title>Ti Vitti</title>
+<style>
+:root{
+  --felt:#16803f;--felt2:#0f5d31;--gold:#ffd45c;--cream:#fffaf0;
+  --ink:#24221f;--red:#b42318;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;color:#fff;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:radial-gradient(circle at 50% 0,var(--felt),var(--felt2) 70%);
+}
+header{text-align:center;padding:8px 8px 3px}
+h1{margin:0;color:var(--gold);font-size:27px}
+.sub{font-size:11px;opacity:.85}
+main{max-width:760px;margin:auto;padding:6px 9px 25px}
+.status{
+  background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.13);
+  border-radius:13px;min-height:44px;padding:9px;text-align:center;
+  margin-bottom:8px;font-weight:750;
+}
+.player-zone{
+  background:rgba(0,0,0,.14);border:2px solid transparent;
+  border-radius:17px;padding:9px;margin-bottom:8px;
+  transition:.15s;
+}
+.player-zone.turn-active{
+  border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,212,92,.18);
+}
+.player-zone h2{margin:0 0 7px;font-size:15px;color:#fff2be;text-align:center}
+.top-zone.friend-view{transform:rotate(180deg)}
+.row{display:flex;justify-content:center;align-items:center;gap:11px;flex-wrap:wrap}
+.card{
+  width:76px;height:112px;border-radius:10px;background:var(--cream);color:var(--ink);
+  border:3px solid #e6d9b8;box-shadow:0 5px 13px rgba(0,0,0,.34);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;user-select:none;overflow:hidden;
+}
+.card.red{color:var(--red)}
+.card .rank{font-size:25px;font-weight:900;line-height:1}
+.card .art{font-size:36px;line-height:1.14}
+.card .suit{font-size:10px;font-weight:900;letter-spacing:.5px}
+.card .corner{position:absolute;top:5px;left:7px;font-size:14px;font-weight:900}
+.card.back{
+  color:white;border-color:#ffe6a8;
+  background:
+    linear-gradient(30deg,transparent 24%,rgba(255,255,255,.19) 25%,rgba(255,255,255,.19) 28%,transparent 29%,transparent 74%,rgba(255,255,255,.19) 75%,rgba(255,255,255,.19) 78%,transparent 79%) 0 0/22px 38px,
+    linear-gradient(150deg,transparent 24%,rgba(255,255,255,.14) 25%,rgba(255,255,255,.14) 28%,transparent 29%,transparent 74%,rgba(255,255,255,.14) 75%,rgba(255,255,255,.14) 78%,transparent 79%) 0 0/22px 38px,
+    #c92f27;
+}
+.card.empty{
+  background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);
+  border:2px dashed rgba(255,255,255,.3);box-shadow:none;
+}
+.controls,.choice{
+  display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:8px;
+}
+button{
+  border:0;border-radius:11px;padding:10px 12px;font-size:14px;font-weight:900;
+  background:var(--gold);color:#34280a;box-shadow:0 4px 9px rgba(0,0,0,.23);
+}
+button.secondary{background:#f0f0f0;color:#222}
+button.danger{background:#ffb5b5;color:#661313}
+button:disabled{opacity:.38}
+.hidden{display:none!important}
+.center-table{
+  background:rgba(0,0,0,.12);border-radius:17px;padding:9px;margin-bottom:8px;
+}
+.center-table h2{font-size:14px;margin:0 0 7px;text-align:center;color:#fff2be}
+.foundations{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.foundation{text-align:center}
+.foundation .label{font-size:9px;margin-bottom:3px}
+.foundation .card{width:60px;height:88px;margin:auto}
+.counts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:7px 0}
+.count{background:rgba(0,0,0,.2);padding:7px;border-radius:10px;text-align:center;font-size:13px;font-weight:800}
+.global-controls{display:flex;justify-content:center;margin:8px 0}
+.rules{background:rgba(255,255,255,.08);padding:10px;border-radius:13px;font-size:12px;line-height:1.4}
+.mode{
+  position:fixed;inset:0;background:rgba(5,24,14,.96);z-index:50;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.modal{
+  max-width:390px;width:100%;background:#164f31;border:1px solid rgba(255,255,255,.16);
+  border-radius:22px;padding:22px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.5);
+}
+.modal h2{margin:0 0 8px;color:var(--gold)}
+.modal p{opacity:.9}
+.modal button{display:block;width:100%;margin-top:10px;padding:14px}
+.win{font-size:20px;color:#ffe68a}
+.flash{animation:flash .55s ease 2}
+@keyframes flash{50%{background:rgba(255,40,40,.45)}}
+@media(max-width:430px){
+  .card{width:67px;height:99px}
+  .foundation .card{width:55px;height:82px}
+  button{font-size:12px;padding:9px 10px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ti Vitti</h1>
+  <div class="sub">Sizilianisches Kartenspiel</div>
+</header>
+
+<main>
+  <div id="status" class="status">Wähle einen Spielmodus.</div>
+
+  <!-- Spieler 2 / Computer bleibt immer oben -->
+  <section id="zone1" class="player-zone top-zone">
+    <h2 id="name1">Computer</h2>
+    <div class="row">
+      <div id="deck1" class="card back">20</div>
+      <div id="open1" class="card empty">Leer</div>
+    </div>
+    <div id="choice1" class="choice hidden">
+      <button data-action="foundation" data-player="1">In die Mitte</button>
+      <button data-action="opponent" data-player="1">Auf Gegner</button>
+    </div>
+    <div id="controls1" class="controls hidden">
+      <button data-action="draw" data-player="1">Karte aufdecken</button>
+      <button data-action="end" data-player="1" class="secondary">Zug beenden</button>
+      <button id="tivitti1" data-action="tivitti" data-player="1" class="danger hidden">TI VITTI!</button>
+    </div>
+  </section>
+
+  <section class="center-table">
+    <h2>Mittelstapel</h2>
+    <div id="foundations" class="foundations"></div>
+    <div class="counts">
+      <div id="count0" class="count">Spieler 1: 20</div>
+      <div id="count1" class="count">Spieler 2: 20</div>
+    </div>
+  </section>
+
+  <!-- Spieler 1 bleibt immer unten -->
+  <section id="zone0" class="player-zone">
+    <h2 id="name0">Du</h2>
+    <div class="row">
+      <div id="deck0" class="card back">20</div>
+      <div id="open0" class="card empty">Leer</div>
+    </div>
+    <div id="choice0" class="choice hidden">
+      <button data-action="foundation" data-player="0">In die Mitte</button>
+      <button data-action="opponent" data-player="0">Auf Gegner</button>
+    </div>
+    <div id="controls0" class="controls">
+      <button data-action="draw" data-player="0">Karte aufdecken</button>
+      <button data-action="end" data-player="0" class="secondary">Zug beenden</button>
+      <button id="tivitti0" data-action="tivitti" data-player="0" class="danger hidden">TI VITTI!</button>
+    </div>
+  </section>
+
+  <div class="global-controls">
+    <button id="newBtn" class="secondary">Neues Spiel</button>
+  </div>
+
+  <div class="rules">
+    <strong>Wichtig:</strong> Du darfst einen Zug auch beenden, obwohl deine offene Karte spielbar ist.
+    Dann kann der Gegner oder Computer „TI VITTI!“ rufen. Im 2-Spieler-Modus bleibt Spieler 1 unten
+    und Spieler 2 oben; beide bedienen ihre eigene Bildschirmhälfte.
+  </div>
+</main>
+
+<div id="modeScreen" class="mode">
+  <div class="modal">
+    <h2>Spielmodus wählen</h2>
+    <p>Gegen den Computer oder zu zweit auf demselben Bildschirm.</p>
+    <button id="vsCpu">Gegen Computer</button>
+    <button id="vsFriend" class="secondary">2 Spieler – geteilter Bildschirm</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const suits=[
+  {id:"denari",name:"DENARI",art:"●",red:true},
+  {id:"bastoni",name:"BASTONI",art:"♣",red:false},
+  {id:"coppe",name:"COPPE",art:"🏺",red:true},
+  {id:"spade",name:"SPADE",art:"⚔",red:false}
+];
+const $=id=>document.getElementById(id);
+const rankName=n=>n===1?"A":n===8?"F":n===9?"C":n===10?"R":String(n);
+
+let mode=null;
+let decks=[[],[]],opens=[[],[]];
+let foundation={denari:0,bastoni:0,coppe:0,spade:0};
+let current=0,waitingChoice=false,busy=false,over=false;
+let pendingTiVitti=false,offender=null;
+
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function makeDeck(){
+  const d=[];
+  suits.forEach(s=>{for(let r=1;r<=10;r++)d.push({suit:s.id,rank:r});});
+  return shuffle(d);
+}
+function top(a){return a.length?a[a.length-1]:null}
+function other(i){return i===0?1:0}
+function total(i){return decks[i].length+opens[i].length}
+function playerName(i){
+  if(mode==="cpu") return i===0?"Du":"Computer";
+  return "Spieler "+(i+1);
+}
+function canFoundation(c){return !!c&&foundation[c.suit]+1===c.rank}
+function canOnOpponent(c,i){
+  const o=top(opens[other(i)]);
+  return !!c&&!!o&&c.rank===o.rank+1;
+}
+function playable(c,i){return canFoundation(c)||canOnOpponent(c,i)}
+
+function cardHTML(c,id){
+  if(!c)return `<div id="${id}" class="card empty">Leer</div>`;
+  const s=suits.find(x=>x.id===c.suit);
+  return `<div id="${id}" class="card ${s.red?"red":""}">
+    <div class="corner">${rankName(c.rank)}</div>
+    <div class="rank">${rankName(c.rank)}</div>
+    <div class="art">${s.art}</div>
+    <div class="suit">${s.name}</div>
+  </div>`;
+}
+
+function recycle(i){
+  if(decks[i].length||opens[i].length<=1)return;
+  const keep=opens[i].pop();
+  const rest=opens[i].splice(0);
+  shuffle(rest);
+  decks[i].push(...rest);
+  opens[i].push(keep);
+}
+
+function setStatus(t){$("status").innerHTML=t}
+
+function render(){
+  for(let i=0;i<2;i++){
+    $("name"+i).textContent=playerName(i);
+    $("count"+i).textContent=`${playerName(i)}: ${total(i)}`;
+    $("deck"+i).textContent=decks[i].length;
+    $("open"+i).outerHTML=cardHTML(top(opens[i]),"open"+i);
+    $("zone"+i).classList.toggle("turn-active",current===i&&!over);
+  }
+
+  $("zone1").classList.toggle("friend-view",mode==="friend");
+  $("controls1").classList.toggle("hidden",mode!=="friend");
+
+  const f=$("foundations");f.innerHTML="";
+  suits.forEach(s=>{
+    const w=document.createElement("div");w.className="foundation";
+    const l=document.createElement("div");l.className="label";l.textContent=s.name;
+    w.appendChild(l);
+    const r=foundation[s.id];
+    const h=document.createElement("div");
+    h.innerHTML=cardHTML(r?{suit:s.id,rank:r}:null,"tmp");
+    if(!r)h.firstChild.textContent="A";
+    w.appendChild(h.firstChild);f.appendChild(w);
+  });
+
+  for(let i=0;i<2;i++){
+    const active=current===i&&!over&&!busy&&(mode==="friend"||i===0);
+    const c=top(opens[i]);
+    $("choice"+i).classList.toggle("hidden",!(active&&waitingChoice));
+    const buttons=$("choice"+i).querySelectorAll("button");
+    buttons[0].disabled=!(active&&waitingChoice&&canFoundation(c));
+    buttons[1].disabled=!(active&&waitingChoice&&canOnOpponent(c,i));
+
+    document.querySelector(`[data-action="draw"][data-player="${i}"]`).disabled=
+      !active||waitingChoice;
+    document.querySelector(`[data-action="end"][data-player="${i}"]`).disabled=
+      !active;
+
+    $("tivitti"+i).classList.toggle("hidden",
+      !(mode==="friend"&&pendingTiVitti&&current===i&&!over));
+  }
+}
+
+function start(m){
+  mode=m;
+  const d=makeDeck();
+  decks=[d.slice(0,20),d.slice(20)];
+  opens=[[],[]];
+  foundation={denari:0,bastoni:0,coppe:0,spade:0};
+  current=0;waitingChoice=false;busy=false;over=false;
+  pendingTiVitti=false;offender=null;
+  $("modeScreen").classList.add("hidden");
+  setStatus(mode==="cpu"?"Du beginnst.":"Spieler 1 beginnt unten.");
+  render();
+}
+
+function checkWin(){
+  for(let i=0;i<2;i++){
+    if(total(i)===0){
+      over=true;
+      setStatus(`<span class="win">${playerName(i)} hat gewonnen! 🎉</span>`);
+      render();return true;
+    }
+  }
+  return false;
+}
+
+function expireTiVitti(){
+  pendingTiVitti=false;
+  offender=null;
+}
+
+function draw(i){
+  if(i!==current||over||busy||waitingChoice)return;
+  if(mode==="cpu"&&i===1)return;
+  expireTiVitti();
+  recycle(i);
+  if(!decks[i].length){checkWin();return}
+  const c=decks[i].pop();
+  opens[i].push(c);
+  waitingChoice=playable(c,i);
+  setStatus(waitingChoice
+    ? `${playerName(i)} kann die Karte spielen – oder absichtlich den Zug beenden.`
+    : `${playerName(i)} hat keine passende Ablage.`);
+  render();
+}
+
+function playFoundation(i){
+  if(i!==current||!waitingChoice||over)return;
+  expireTiVitti();
+  const c=top(opens[i]);
+  if(!canFoundation(c))return;
+  opens[i].pop();
+  foundation[c.suit]++;
+  waitingChoice=false;
+  setStatus(`${playerName(i)} legt in die Mitte und darf weiter aufdecken.`);
+  if(!checkWin())render();
+}
+
+function playOpponent(i){
+  if(i!==current||!waitingChoice||over)return;
+  expireTiVitti();
+  const c=top(opens[i]);
+  if(!canOnOpponent(c,i))return;
+  opens[i].pop();
+  opens[other(i)].push(c);
+  waitingChoice=false;
+  setStatus(`${playerName(i)} legt auf den gegnerischen Stapel.`);
+  if(!checkWin())render();
+}
+
+function endTurn(i){
+  if(i!==current||over||busy)return;
+  const mistake=playable(top(opens[i]),i);
+  waitingChoice=false;
+
+  if(mode==="cpu"&&i===0){
+    if(mistake){
+      setStatus("<strong>TI VITTI!</strong> Der Computer hat deinen übersehenen Zug erkannt.");
+      $("status").classList.add("flash");
+      setTimeout(()=>$("status").classList.remove("flash"),1100);
+    }else{
+      setStatus("Der Computer ist dran …");
+    }
+    current=1;busy=true;render();
+    setTimeout(cpuStep,mistake?1100:600);
+    return;
+  }
+
+  if(mode==="friend"){
+    offender=mistake?i:null;
+    pendingTiVitti=mistake;
+    current=other(i);
+    setStatus(mistake
+      ? `${playerName(current)} ist dran und kann jetzt TI VITTI rufen.`
+      : `${playerName(current)} ist dran.`);
+    render();
+  }
+}
+
+function callTiVitti(i){
+  if(mode!=="friend"||!pendingTiVitti||i!==current||offender===null)return;
+  setStatus(`<strong>TI VITTI!</strong> ${playerName(offender)} hat eine spielbare Karte übersehen.`);
+  $("status").classList.add("flash");
+  setTimeout(()=>$("status").classList.remove("flash"),1100);
+  pendingTiVitti=false;offender=null;
+  render();
+}
+
+function cpuStep(){
+  if(over)return;
+  recycle(1);
+  if(!decks[1].length){busy=false;checkWin();return}
+  const c=decks[1].pop();
+  opens[1].push(c);
+  render();
+
+  setTimeout(()=>{
+    if(canFoundation(c)){
+      opens[1].pop();foundation[c.suit]++;
+      setStatus("Computer legt in die Mitte.");
+      render();
+      if(!checkWin())setTimeout(cpuStep,500);
+    }else if(canOnOpponent(c,1)){
+      opens[1].pop();opens[0].push(c);
+      setStatus("Computer legt auf deinen Stapel.");
+      render();
+      if(!checkWin())setTimeout(cpuStep,500);
+    }else{
+      busy=false;current=0;
+      setStatus("Computer kann nicht legen. Du bist dran.");
+      render();
+    }
+  },450);
+}
+
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button[data-action]");
+  if(!b)return;
+  const i=Number(b.dataset.player);
+  const a=b.dataset.action;
+  if(a==="draw")draw(i);
+  if(a==="end")endTurn(i);
+  if(a==="foundation")playFoundation(i);
+  if(a==="opponent")playOpponent(i);
+  if(a==="tivitti")callTiVitti(i);
+});
+
+$("vsCpu").onclick=()=>start("cpu");
+$("vsFriend").onclick=()=>start("friend");
+$("newBtn").onclick=()=>{$("modeScreen").classList.remove("hidden");};
+render();
+})();
+</script>
+</body>
+</html>
